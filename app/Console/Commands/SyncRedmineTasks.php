@@ -20,7 +20,9 @@ class SyncRedmineTasks extends Command
         $count = 0;
         try {
             foreach ($redmine->iterateIssues($filter) as $issue) {
-                $normalized = RedmineClient::normalizeIssueFromApi($issue);
+                $normalized = RedmineIssue::enrichNormalizedAssignee(
+                    RedmineClient::normalizeIssueFromApi($issue)
+                );
                 if ($normalized['redmine_issue_id'] === 0) {
                     continue;
                 }

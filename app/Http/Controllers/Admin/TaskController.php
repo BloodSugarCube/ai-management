@@ -27,7 +27,7 @@ class TaskController extends Controller
         $sort = (string) $request->query('sort', '');
         $dir = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
 
-        $query = RedmineIssue::query();
+        $query = RedmineIssue::query()->with('assignee');
 
         if ($sort === '' || ! in_array($sort, self::SORTABLE, true)) {
             $query->orderByRaw('CASE WHEN assigned_to_redmine_id IS NULL THEN 0 ELSE 1 END ASC')
@@ -78,7 +78,14 @@ class TaskController extends Controller
         }
 
         $data = $request->validate([
-            'login' => ['required', 'string', 'max:191', Rule::exists('employees', 'login')],
+            'login' => [
+                'required',
+                'string',
+                'max:191',
+                Rule::exists('employees', 'login')->where(fn ($q) => $q->where('ignored', false)),
+            ],
+        ], [
+            'login.exists' => 'Сотрудник не найден или отмечен как «Игнорировать».',
         ]);
 
         try {

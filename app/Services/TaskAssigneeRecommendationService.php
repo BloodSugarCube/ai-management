@@ -21,7 +21,7 @@ class TaskAssigneeRecommendationService
      */
     public function getRecommendations(RedmineIssue $issue): array
     {
-        $employees = Employee::query()->orderBy('login')->get();
+        $employees = Employee::query()->forRecommendations()->orderBy('login')->get();
         $employeePayload = $this->buildEmployeePayload($employees);
 
         $taskJson = json_encode($issue->toTaskPayloadArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -111,7 +111,9 @@ PROMPT;
     {
         $base = [
             'is_sync' => ! filter_var(config('genapi.is_async', false), FILTER_VALIDATE_BOOLEAN),
-            'text' => $text,
+            'messages' => [
+                ['role' => 'user', 'content' => $text],
+            ],
         ];
         $merge = config('genapi.extra_json_body');
         if (is_array($merge)) {
@@ -207,7 +209,13 @@ PROMPT;
     private function parseRecommendationsJson(string $text): array
     {
         $data = $this->decodeJsonLoose($text);
-        $rows = $data['recommendations'] ?? $data['result'] ?? null;
+        $rows = $data['recommendations'] ?? null;
+        if (! is_array($rows) && isset($data['result']) && is_array($data['result'])) {
+            $first = $data['result'][0] ?? null;
+            if (is_array($first) && isset($first['login'])) {
+                $rows = $data['result'];
+            }
+        }
         if (! is_array($rows)) {
             return [];
         }
@@ -284,11 +292,16 @@ PROMPT;
     private function decodeJsonLoose(string $text): array
     {
         $text = trim($text);
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)```/iu', $text, $fence)) {
+            $text = trim($fence[1]);
+        }
+
         $try = json_decode($text, true);
         if (is_array($try)) {
             return $try;
         }
-        if (preg_match('/\{.*\}/s', $text, $m)) {
+
+        if (preg_match('/\{[\s\S]*\}/u', $text, $m)) {
             $try2 = json_decode($m[0], true);
             if (is_array($try2)) {
                 return $try2;

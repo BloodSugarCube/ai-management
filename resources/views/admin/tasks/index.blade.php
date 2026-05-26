@@ -26,7 +26,7 @@
                 <div style="font-weight:700;">Автоназначение</div>
                 <div style="color: var(--muted); font-size: 12px;">При «Подобрать исполнителя» сразу назначить лучшего</div>
             </div>
-            <div id="autoAssignSwitch" class="switch on" role="switch" aria-checked="true" tabindex="0" title="Переключить"></div>
+            <div id="autoAssignSwitch" class="switch" role="switch" aria-checked="false" tabindex="0" title="Переключить"></div>
         </label>
     </div>
 
@@ -58,7 +58,7 @@
                                 Подобрать исполнителя
                             </button>
                         @else
-                            {{ $issue->assigned_to_login }}
+                            {{ $issue->assigneeDisplay() ?? '—' }}
                         @endif
                     </td>
                     <td style="max-width: 360px;">
@@ -122,15 +122,20 @@
             const modalCancelBtn = document.getElementById('modalCancelBtn');
             const modalSaveBtn = document.getElementById('modalSaveBtn');
 
-            let autoAssign = true;
+            const AUTO_ASSIGN_KEY = 'ai-management.tasks.autoAssign';
+            let autoAssign = localStorage.getItem(AUTO_ASSIGN_KEY) === '1';
             const syncSwitch = () => {
                 autoSwitch.classList.toggle('on', autoAssign);
                 autoSwitch.setAttribute('aria-checked', autoAssign ? 'true' : 'false');
+            };
+            const persistAutoAssign = () => {
+                localStorage.setItem(AUTO_ASSIGN_KEY, autoAssign ? '1' : '0');
             };
             syncSwitch();
             const toggleAuto = () => {
                 autoAssign = !autoAssign;
                 syncSwitch();
+                persistAutoAssign();
             };
             autoSwitch.addEventListener('click', toggleAuto);
             autoSwitch.addEventListener('keydown', (e) => {
@@ -271,6 +276,7 @@
                         }
 
                         if (autoAssign) {
+                            persistAutoAssign();
                             const urlAs = `${base}/${issueId}/assign`;
                             await postJson(urlAs, {login: recs[0].login});
                             window.location.reload();

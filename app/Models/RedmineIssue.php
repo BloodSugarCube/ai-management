@@ -58,6 +58,38 @@ class RedmineIssue extends Model
         return $this->assigned_to_redmine_id === null;
     }
 
+    public function assigneeDisplay(): ?string
+    {
+        if ($this->isUnassigned()) {
+            return null;
+        }
+
+        $login = $this->assigned_to_login ?: $this->assignee?->login;
+
+        return $login !== null && $login !== '' ? $login : null;
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    public static function enrichNormalizedAssignee(array $normalized): array
+    {
+        if (empty($normalized['assigned_to_redmine_id']) || ! empty($normalized['assigned_to_login'])) {
+            return $normalized;
+        }
+
+        $login = Employee::query()
+            ->where('redmine_user_id', (int) $normalized['assigned_to_redmine_id'])
+            ->value('login');
+
+        if ($login !== null && $login !== '') {
+            $normalized['assigned_to_login'] = $login;
+        }
+
+        return $normalized;
+    }
+
     public function toTaskPayloadArray(): array
     {
         return [

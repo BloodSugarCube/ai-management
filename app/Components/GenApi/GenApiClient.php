@@ -3,6 +3,7 @@
 namespace App\Components\GenApi;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
 
@@ -13,12 +14,13 @@ class GenApiClient
 {
     private Client $http;
 
-    public function __construct(?Client $http = null)
+    public function __construct()
     {
-        $this->http = $http ?? new Client([
+        // Do not type-hint Guzzle Client here: Laravel auto-resolves it and ignores base_uri/headers.
+        $this->http = new Client([
             'base_uri' => $this->baseUrl() . '/',
             'timeout' => (int) config('genapi.timeout', 120),
-            'verify' => (bool) config('genapi.verify_ssl', true),
+            'verify' => $this->sslVerifyOption(),
             'headers' => [
                 'Authorization' => 'Bearer ' . (string) config('genapi.api_key'),
                 'Accept' => 'application/json',
@@ -37,6 +39,21 @@ class GenApiClient
         return rtrim($url, '/');
     }
 
+    /** @return bool|string */
+    private function sslVerifyOption(): bool|string
+    {
+        $bundle = config('genapi.ca_bundle');
+        if (is_string($bundle) && $bundle !== '') {
+            if (! is_readable($bundle)) {
+                throw new \RuntimeException('GENAPI_CA_BUNDLE is not a readable file: ' . $bundle);
+            }
+
+            return $bundle;
+        }
+
+        return (bool) config('genapi.verify_ssl', true);
+    }
+
     /**
      * Выполняет запрос к выбранной «нейросети» и возвращает итоговый JSON-ответ GenAPI.
      *
@@ -53,7 +70,11 @@ class GenApiClient
         }
 
         $path = 'api/v1/networks/' . rawurlencode($networkId);
-        $res = $this->http->post($path, ['json' => $body]);
+        try {
+            $res = $this->http->post($path, ['json' => $body]);
+        } catch (ClientException $e) {
+            throw $this->toReadableException($e);
+        }
         $data = json_decode((string) $res->getBody(), true) ?? [];
 
         $requestId = $data['request_id'] ?? $data['id'] ?? null;
@@ -97,8 +118,14 @@ class GenApiClient
      */
     public static function extractModelText(array $response): string
     {
+        foreach (['choices', 'full_response', 'result'] as $key) {
+            $text = self::extractFromCompletionContainer($response[$key] ?? null);
+            if ($text !== '') {
+                return $text;
+            }
+        }
+
         $paths = [
-            ['result'],
             ['data', 'result'],
             ['data', 'output'],
             ['output'],
@@ -113,8 +140,66 @@ class GenApiClient
             if (is_string($v) && $v !== '') {
                 return $v;
             }
+            if (is_array($v)) {
+                $nested = self::extractFromCompletionContainer($v);
+                if ($nested !== '') {
+                    return $nested;
+                }
+            }
         }
 
         return json_encode($response, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * @param mixed $node GenAPI result / full_response / choices (строка, completion или массив completions).
+     */
+    private static function extractFromCompletionContainer(mixed $node): string
+    {
+        if (is_string($node) && trim($node) !== '') {
+            return trim($node);
+        }
+        if (! is_array($node)) {
+            return '';
+        }
+
+        $content = $node['choices'][0]['message']['content'] ?? null;
+        if (is_string($content) && trim($content) !== '') {
+            return trim($content);
+        }
+
+        if (array_is_list($node)) {
+            foreach ($node as $item) {
+                $text = self::extractFromCompletionContainer($item);
+                if ($text !== '') {
+                    return $text;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function toReadableException(ClientException $e): \RuntimeException
+    {
+        $response = $e->getResponse();
+        if ($response !== null) {
+            $data = json_decode((string) $response->getBody(), true);
+            if (is_array($data)) {
+                $validation = $data['errors_validation']['messages'] ?? null;
+                if (is_array($validation) && $validation !== []) {
+                    return new \RuntimeException(
+                        'GenAPI: ' . implode('; ', array_map('strval', $validation)),
+                        0,
+                        $e
+                    );
+                }
+                if (! empty($data['message']) && is_string($data['message'])) {
+                    return new \RuntimeException('GenAPI: ' . $data['message'], 0, $e);
+                }
+            }
+        }
+
+        return new \RuntimeException($e->getMessage(), 0, $e);
     }
 }

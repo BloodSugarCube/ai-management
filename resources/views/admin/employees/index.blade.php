@@ -2,72 +2,151 @@
 
 @section('title', 'Сотрудники — AI-management')
 
+@push('head')
+    <style>
+        .employees-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        table.employees-table {
+            table-layout: fixed;
+        }
+        table.employees-table .col-login { width: 88px; }
+        table.employees-table .col-tasks { width: 16%; min-width: 160px; }
+        table.employees-table .col-text { width: 26%; min-width: 200px; }
+        table.employees-table .col-hours {
+            width: 64px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        table.employees-table .col-ignore {
+            width: 88px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        table.employees-table .col-ignore label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            min-height: 24px;
+        }
+        table.employees-table .col-ignore input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        table.employees-table textarea {
+            min-height: 96px;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+        table.employees-table .col-login strong {
+            word-break: break-word;
+            font-size: 13px;
+        }
+        table.employees-table .col-hours .hours-value {
+            padding-top: 6px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        table.employees-table ul.compact {
+            font-size: 13px;
+        }
+    </style>
+@endpush
+
 @section('content')
     <h1 style="margin-top:0;">Сотрудники</h1>
     <p style="color: var(--muted); max-width: 900px;">
         Данные синхронизируются командой <span class="pill">php artisan redmine:sync-employees</span>.
         Поля грейдов, компетенций и опыта сохраняются локально и участвуют в подборе исполнителя через GenAPI.
+        Отмеченные «Игнорировать» не участвуют в рекомендациях и не могут быть назначены.
     </p>
 
-    <div class="card" style="overflow:auto;">
-        <table>
-            <thead>
-            <tr>
-                <th style="width: 140px;">
-                    <a href="{{ route('employees.index', ['direction' => $sortDirection === 'asc' ? 'desc' : 'asc']) }}">Логин</a>
-                    @if($sortDirection === 'asc') ↑ @else ↓ @endif
-                </th>
-                <th style="min-width: 220px;">Текущие задачи (in progress)</th>
-                <th style="min-width: 140px;">Грейды</th>
-                <th style="min-width: 160px;">Компетенции</th>
-                <th style="min-width: 220px;">Опыт и достижения</th>
-                <th style="width: 120px;">Запланировано ч.</th>
-                <th style="width: 120px;"></th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach($employees as $employee)
-                @php($fid = 'employee-form-'.$employee->id)
-                <tr>
-                    <td>
-                        <form id="{{ $fid }}" method="post" action="{{ route('employees.update', $employee) }}?direction={{ $sortDirection }}">
-                            @csrf
-                            @method('PUT')
-                        </form>
-                        <strong>{{ $employee->login }}</strong>
-                    </td>
-                    <td>
-                        @php($tasks = $employee->inProgressTaskSubjects())
-                        @if($tasks === [])
-                            <span class="pill">нет</span>
-                        @else
-                            <ul class="compact">
-                                @foreach($tasks as $t)
-                                    <li>{{ $t }}</li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </td>
-                    <td>
-                        <textarea name="grades" rows="3" form="{{ $fid }}">{{ old('grades.'.$employee->id, $employee->grades) }}</textarea>
-                    </td>
-                    <td>
-                        <textarea name="competencies" rows="3" form="{{ $fid }}">{{ old('competencies.'.$employee->id, $employee->competencies) }}</textarea>
-                    </td>
-                    <td>
-                        <textarea name="experience_achievements" rows="3" form="{{ $fid }}">{{ old('exp.'.$employee->id, $employee->experience_achievements) }}</textarea>
-                    </td>
-                    <td>
-                        <div style="padding-top:6px;font-weight:700;">
-                            {{ number_format($employee->plannedHoursOnIncomplete(), 1, ',', ' ') }}
-                        </div>
-                    </td>
-                    <td>
-                        <button class="btn btn-primary" type="submit" form="{{ $fid }}" style="width:100%;">Сохранить</button>
-                    </td>
-                </tr>
+    @if ($errors->any())
+        <div class="error">
+            @foreach ($errors->all() as $error)
+                <div>{{ $error }}</div>
             @endforeach
-            </tbody>
-        </table>
-    </div>
+        </div>
+    @endif
+
+    <form method="post" action="{{ route('employees.bulk-update', ['direction' => $sortDirection]) }}">
+        @csrf
+        @method('PUT')
+
+        <div class="employees-toolbar">
+            <span style="color: var(--muted); font-size: 14px;">Изменения применяются ко всем сотрудникам на странице.</span>
+            <button class="btn btn-primary" type="submit">Сохранить</button>
+        </div>
+
+        <div class="card" style="overflow:auto;">
+            <table class="employees-table">
+                <thead>
+                <tr>
+                    <th class="col-login">
+                        <a href="{{ route('employees.index', ['direction' => $sortDirection === 'asc' ? 'desc' : 'asc']) }}">Логин</a>
+                        @if($sortDirection === 'asc') ↑ @else ↓ @endif
+                    </th>
+                    <th class="col-tasks">Текущие задачи (in progress)</th>
+                    <th class="col-text">Грейды</th>
+                    <th class="col-text">Компетенции</th>
+                    <th class="col-text">Опыт и достижения</th>
+                    <th class="col-hours">Заплан. ч.</th>
+                    <th class="col-ignore">Игнорировать</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($employees as $employee)
+                    <tr>
+                        <td class="col-login">
+                            <strong>{{ $employee->login }}</strong>
+                        </td>
+                        <td class="col-tasks">
+                            @php($tasks = $employee->inProgressTaskSubjects())
+                            @if($tasks === [])
+                                <span class="pill">нет</span>
+                            @else
+                                <ul class="compact">
+                                    @foreach($tasks as $t)
+                                        <li>{{ $t }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </td>
+                        <td class="col-text">
+                            <textarea name="employees[{{ $employee->id }}][grades]" rows="4">{{ old('employees.'.$employee->id.'.grades', $employee->grades) }}</textarea>
+                        </td>
+                        <td class="col-text">
+                            <textarea name="employees[{{ $employee->id }}][competencies]" rows="4">{{ old('employees.'.$employee->id.'.competencies', $employee->competencies) }}</textarea>
+                        </td>
+                        <td class="col-text">
+                            <textarea name="employees[{{ $employee->id }}][experience_achievements]" rows="4">{{ old('employees.'.$employee->id.'.experience_achievements', $employee->experience_achievements) }}</textarea>
+                        </td>
+                        <td class="col-hours">
+                            <div class="hours-value">
+                                {{ number_format($employee->plannedHoursOnIncomplete(), 1, ',', ' ') }}
+                            </div>
+                        </td>
+                        <td class="col-ignore">
+                            <input type="hidden" name="employees[{{ $employee->id }}][ignored]" value="0">
+                            <label title="Не предлагать в рекомендациях">
+                                <input type="checkbox"
+                                       name="employees[{{ $employee->id }}][ignored]"
+                                       value="1"
+                                       @checked(filter_var(old('employees.'.$employee->id.'.ignored', $employee->ignored), FILTER_VALIDATE_BOOLEAN))>
+                            </label>
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+    </form>
 @endsection

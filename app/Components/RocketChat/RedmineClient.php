@@ -13,12 +13,13 @@ class RedmineClient
 {
     private Client $http;
 
-    public function __construct(?Client $http = null)
+    public function __construct()
     {
-        $this->http = $http ?? new Client([
+        // Do not type-hint Guzzle Client here: Laravel auto-resolves it and ignores base_uri/headers.
+        $this->http = new Client([
             'base_uri' => $this->baseUrl() . '/',
             'timeout' => (int) config('redmine.timeout', 60),
-            'verify' => (bool) config('redmine.verify_ssl', true),
+            'verify' => $this->sslVerifyOption(),
             'headers' => [
                 'X-Redmine-API-Key' => (string) config('redmine.api_key'),
                 'Accept' => 'application/json',
@@ -35,6 +36,21 @@ class RedmineClient
         }
 
         return rtrim($url, '/');
+    }
+
+    /** @return bool|string */
+    private function sslVerifyOption(): bool|string
+    {
+        $bundle = config('redmine.ca_bundle');
+        if (is_string($bundle) && $bundle !== '') {
+            if (! is_readable($bundle)) {
+                throw new \RuntimeException('REDMINE_CA_BUNDLE is not a readable file: ' . $bundle);
+            }
+
+            return $bundle;
+        }
+
+        return (bool) config('redmine.verify_ssl', true);
     }
 
     /**
@@ -165,8 +181,11 @@ class RedmineClient
      */
     public static function normalizeIssueFromApi(array $issue): array
     {
-        $assignedId = isset($issue['assigned_to']['id']) ? (int) $issue['assigned_to']['id'] : null;
-        $assignedLogin = $issue['assigned_to']['login'] ?? null;
+        $assigned = $issue['assigned_to'] ?? null;
+        $assignedId = is_array($assigned) && isset($assigned['id']) ? (int) $assigned['id'] : null;
+        $assignedLogin = is_array($assigned)
+            ? ($assigned['login'] ?? $assigned['name'] ?? null)
+            : null;
 
         $labels = self::extractLabels($issue);
 

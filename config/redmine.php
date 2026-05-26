@@ -3,7 +3,8 @@
 return [
     'base_url' => rtrim(env('REDMINE_BASE_URL', ''), '/'),
     'api_key' => env('REDMINE_API_KEY', ''),
-    'verify_ssl' => env('REDMINE_VERIFY_SSL', true),
+    'verify_ssl' => filter_var(env('REDMINE_VERIFY_SSL', true), FILTER_VALIDATE_BOOLEAN),
+    'ca_bundle' => env('REDMINE_CA_BUNDLE'),
     'timeout' => (int) env('REDMINE_HTTP_TIMEOUT', 60),
     'page_size' => (int) env('REDMINE_PAGE_SIZE', 100),
     'issue_status_filter' => env('REDMINE_ISSUE_STATUS_FILTER', 'open'),

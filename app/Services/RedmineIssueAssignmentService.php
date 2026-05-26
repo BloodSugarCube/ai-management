@@ -16,9 +16,14 @@ class RedmineIssueAssignmentService
     {
         $employee = \App\Models\Employee::query()->where('login', $login)->firstOrFail();
 
-        DB::transaction(function () use ($issue, $employee) {
+        DB::transaction(function () use ($issue, $employee, $login) {
             $this->redmine->assignIssue((int) $issue->redmine_issue_id, (int) $employee->redmine_user_id);
             $fresh = RedmineClient::normalizeIssueFromApi($this->redmine->getIssue((int) $issue->redmine_issue_id));
+            $fresh = RedmineIssue::enrichNormalizedAssignee($fresh);
+            if (empty($fresh['assigned_to_redmine_id'])) {
+                $fresh['assigned_to_redmine_id'] = (int) $employee->redmine_user_id;
+            }
+            $fresh['assigned_to_login'] = $fresh['assigned_to_login'] ?? $login;
             $issue->update($fresh);
         });
 

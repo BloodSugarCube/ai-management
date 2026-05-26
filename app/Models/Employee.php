@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -13,11 +14,22 @@ class Employee extends Model
         'grades',
         'competencies',
         'experience_achievements',
+        'ignored',
     ];
 
     protected $casts = [
         'redmine_user_id' => 'integer',
+        'ignored' => 'boolean',
     ];
+
+    /**
+     * @param Builder<Employee> $query
+     * @return Builder<Employee>
+     */
+    public function scopeForRecommendations(Builder $query): Builder
+    {
+        return $query->where('ignored', false);
+    }
 
     public function issues(): HasMany
     {
