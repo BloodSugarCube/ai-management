@@ -6,7 +6,7 @@
     <style>
         .employees-page { max-width: none; width: 100%; }
         main .wrap:has(.employees-page) {
-            max-width: min(1680px, calc(100vw - 40px));
+            max-width: min(1480px, calc(100vw - 40px));
         }
         .employees-toolbar {
             display: flex;
@@ -19,16 +19,16 @@
         table.employees-table {
             table-layout: fixed;
         }
-        table.employees-table .col-login { width: 88px; }
-        table.employees-table .col-tasks { width: 16%; min-width: 160px; }
-        table.employees-table .col-text { width: 26%; min-width: 200px; }
+        table.employees-table .col-login { width: 76px; }
+        table.employees-table .col-tasks { width: 11%; }
+        table.employees-table .col-text { width: 21%; }
         table.employees-table .col-hours {
-            width: 64px;
+            width: 52px;
             text-align: right;
             white-space: nowrap;
         }
         table.employees-table .col-ignore {
-            width: 88px;
+            width: 72px;
             text-align: center;
             vertical-align: middle;
             padding-left: 28px;

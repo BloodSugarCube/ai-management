@@ -269,7 +269,7 @@
                         <div class="file-dropzone-inner" id="fileDropzoneTrigger">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             <strong>Перетащите файлы сюда</strong>
-                            <span>или нажмите для выбора · до 10 МБ на файл</span>
+                            <span>или нажмите для выбора · до 5 МБ на файл</span>
                         </div>
                         <ul class="file-list" id="fileList"></ul>
                     </div>
@@ -414,8 +414,8 @@
 
             function addFiles(files) {
                 Array.from(files).forEach((file) => {
-                    if (file.size > 10 * 1024 * 1024) {
-                        alert('Файл «' + file.name + '» превышает 10 МБ.');
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Файл «' + file.name + '» превышает 5 МБ.');
                         return;
                     }
                     const duplicate = selectedFiles.some((f) => f.name === file.name && f.size === file.size);

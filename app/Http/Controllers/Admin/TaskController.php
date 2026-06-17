@@ -85,7 +85,7 @@ class TaskController extends Controller
             'related_issue_ids' => ['nullable', 'array'],
             'related_issue_ids.*' => ['integer', 'min:1'],
             'attachments' => ['nullable', 'array', 'max:10'],
-            'attachments.*' => ['file', 'max:10240'],
+            'attachments.*' => ['file', 'max:5120'],
         ]);
 
         $uploads = [];

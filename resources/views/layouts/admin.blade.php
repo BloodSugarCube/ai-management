@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'AI-management')</title>
+    <title>@yield('title', config('app.name'))</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         :root {
@@ -35,7 +35,22 @@
         }
         .wrap { max-width: 1280px; margin: 0 auto; padding: 16px 20px; }
         .nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-        .brand { font-weight: 700; letter-spacing: 0.02em; }
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: var(--text);
+            text-decoration: none;
+        }
+        .brand:hover { text-decoration: none; opacity: 0.95; }
+        .brand-logo {
+            width: 28px;
+            height: 28px;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
         .menu { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .menu a, .menu .menu-link {
             display: inline-flex;
@@ -184,7 +199,15 @@
 
 <header>
     <div class="wrap nav">
-        <div class="brand">AI-management</div>
+        <a href="{{ auth()->check() ? route('employees.index') : route('login') }}" class="brand">
+            <svg class="brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5a3 3 0 1 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+                <path d="M12 5a3 3 0 1 1 5.997.142 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+                <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+                <path d="M12 18v4"/>
+            </svg>
+            <span>{{ config('app.name') }}</span>
+        </a>
         @auth
         <nav class="menu">
             <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\ThrottleLoginAttempts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
@@ -25,8 +27,15 @@ class AuthController extends Controller
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            RateLimiter::hit(
+                ThrottleLoginAttempts::rateLimitKey($request),
+                ThrottleLoginAttempts::DECAY_SECONDS
+            );
+
             return back()->withErrors(['email' => 'Неверный логин или пароль.'])->onlyInput('email');
         }
+
+        RateLimiter::clear(ThrottleLoginAttempts::rateLimitKey($request));
 
         $request->session()->regenerate();
 
