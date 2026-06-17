@@ -12,25 +12,26 @@
         $resetUrl = route('tasks.index');
     @endphp
 
-    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
-        <div>
-            <h1 style="margin:0 0 8px 0;">Задачи</h1>
-            <p style="color: var(--muted); margin:0; max-width: 900px;">
-                Синхронизация: <span class="pill">php artisan redmine:sync-tasks</span>.
-                По умолчанию выше — без исполнителя. Сортировка по столбцам — по клику на заголовок.
-                <a href="{{ $resetUrl }}">Сбросить сортировку</a>
-            </p>
-        </div>
-        <label class="toggle" style="margin-bottom:4px;">
+    <div class="page-toolbar">
+        <h1 style="margin:0;">Задачи</h1>
+        <a href="{{ route('tasks.create') }}" class="btn btn-primary">Добавить задачу</a>
+    </div>
+
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom: 16px;">
+        <label class="toggle">
             <div>
                 <div style="font-weight:700;">Автоназначение</div>
                 <div style="color: var(--muted); font-size: 12px;">При «Подобрать исполнителя» сразу назначить лучшего</div>
             </div>
             <div id="autoAssignSwitch" class="switch" role="switch" aria-checked="false" tabindex="0" title="Переключить"></div>
         </label>
+        <p style="color: var(--muted); margin:0; max-width: 900px; font-size: 14px;">
+            По умолчанию выше — без исполнителя. Сортировка по столбцам — по клику на заголовок.
+            <a href="{{ $resetUrl }}">Сбросить сортировку</a>
+        </p>
     </div>
 
-    <div class="card" style="margin-top: 16px; overflow:auto;">
+    <div class="card" style="overflow:auto;">
         <table>
             <thead>
             <tr>
@@ -39,8 +40,8 @@
                 <th><a href="{{ $sortUrl('assigned_to_login') }}">Исполнитель</a></th>
                 <th>Описание</th>
                 <th><a href="{{ $sortUrl('priority_name') }}">Приоритет</a></th>
+                <th><a href="{{ $sortUrl('status_name') }}">Статус задачи</a></th>
                 <th><a href="{{ $sortUrl('due_date') }}">Дедлайн</a></th>
-                <th><a href="{{ $sortUrl('labels') }}">Метки</a></th>
                 <th><a href="{{ $sortUrl('estimated_hours') }}">Часы</a></th>
                 <th><a href="{{ $sortUrl('tracker_name') }}">Тип</a></th>
             </tr>
@@ -70,14 +71,8 @@
                         </details>
                     </td>
                     <td>{{ $issue->priority_name ?? '—' }}</td>
+                    <td>{{ $issue->status_name ?? '—' }}</td>
                     <td>{{ $issue->due_date?->format('Y-m-d') ?? '—' }}</td>
-                    <td>
-                        @forelse($issue->labelsList() as $label)
-                            <span class="pill" style="margin: 2px 4px 2px 0; display:inline-block;">{{ $label }}</span>
-                        @empty
-                            —
-                        @endforelse
-                    </td>
                     <td>{{ $issue->estimated_hours !== null ? number_format((float) $issue->estimated_hours, 2, ',', ' ') : '—' }}</td>
                     <td>{{ $issue->tracker_name ?? '—' }}</td>
                 </tr>

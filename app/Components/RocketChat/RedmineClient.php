@@ -176,6 +176,209 @@ class RedmineClient
     }
 
     /**
+     * @return array<int, array{id: int, name: string}>
+     *
+     * @throws GuzzleException
+     */
+    public function fetchProjects(): array
+    {
+        $all = [];
+        $limit = (int) config('redmine.page_size', 100);
+        $offset = 0;
+
+        while (true) {
+            $res = $this->http->get('projects.json', [
+                'query' => ['limit' => $limit, 'offset' => $offset],
+            ]);
+            $data = json_decode((string) $res->getBody(), true);
+            $items = $data['projects'] ?? [];
+            foreach ($items as $p) {
+                $all[] = [
+                    'id' => (int) ($p['id'] ?? 0),
+                    'name' => (string) ($p['name'] ?? ''),
+                ];
+            }
+            if (count($items) < $limit) {
+                break;
+            }
+            $offset += $limit;
+        }
+
+        usort($all, fn ($a, $b) => strcmp($a['name'], $b['name']));
+
+        return $all;
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     *
+     * @throws GuzzleException
+     */
+    public function fetchIssueStatuses(): array
+    {
+        $res = $this->http->get('issue_statuses.json');
+        $data = json_decode((string) $res->getBody(), true);
+        $out = [];
+        foreach ($data['issue_statuses'] ?? [] as $s) {
+            $out[] = [
+                'id' => (int) ($s['id'] ?? 0),
+                'name' => (string) ($s['name'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     *
+     * @throws GuzzleException
+     */
+    public function fetchIssuePriorities(): array
+    {
+        $res = $this->http->get('enumerations/issue_priorities.json');
+        $data = json_decode((string) $res->getBody(), true);
+        $out = [];
+        foreach ($data['issue_priorities'] ?? [] as $p) {
+            $out[] = [
+                'id' => (int) ($p['id'] ?? 0),
+                'name' => (string) ($p['name'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     *
+     * @throws GuzzleException
+     */
+    public function fetchTrackers(): array
+    {
+        $res = $this->http->get('trackers.json');
+        $data = json_decode((string) $res->getBody(), true);
+        $out = [];
+        foreach ($data['trackers'] ?? [] as $t) {
+            $out[] = [
+                'id' => (int) ($t['id'] ?? 0),
+                'name' => (string) ($t['name'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     *
+     * @throws GuzzleException
+     */
+    public function fetchIssueCategories(int $projectId): array
+    {
+        $res = $this->http->get('projects/' . $projectId . '/issue_categories.json');
+        $data = json_decode((string) $res->getBody(), true);
+        $out = [];
+        foreach ($data['issue_categories'] ?? [] as $c) {
+            $out[] = [
+                'id' => (int) ($c['id'] ?? 0),
+                'name' => (string) ($c['name'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{id: int, text: string}>
+     *
+     * @throws GuzzleException
+     */
+    public function searchIssues(string $term = '', int $limit = 50): array
+    {
+        $query = [
+            'limit' => min($limit, 100),
+            'sort' => 'updated_on:desc',
+        ];
+        if ($term !== '') {
+            $query['subject'] = '~' . $term;
+        }
+
+        $res = $this->http->get('issues.json', ['query' => $query]);
+        $data = json_decode((string) $res->getBody(), true);
+        $out = [];
+        foreach ($data['issues'] ?? [] as $issue) {
+            $id = (int) ($issue['id'] ?? 0);
+            $subject = (string) ($issue['subject'] ?? '');
+            $project = (string) ($issue['project']['name'] ?? '');
+            $out[] = [
+                'id' => $id,
+                'text' => '#' . $id . ' — ' . $subject . ($project !== '' ? ' (' . $project . ')' : ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @throws GuzzleException
+     */
+    public function uploadAttachment(string $contents, string $filename, string $contentType): string
+    {
+        $res = $this->http->post('uploads.json', [
+            'query' => ['filename' => $filename],
+            'headers' => [
+                'Content-Type' => 'application/octet-stream',
+            ],
+            'body' => $contents,
+        ]);
+        $data = json_decode((string) $res->getBody(), true);
+        $token = $data['upload']['token'] ?? null;
+        if (! is_string($token) || $token === '') {
+            throw new \RuntimeException('Redmine upload did not return a token.');
+        }
+
+        return $token;
+    }
+
+    /**
+     * @param array<string, mixed> $issuePayload
+     * @param array<int, int> $relatedIssueIds
+     * @return array<string, mixed>
+     *
+     * @throws GuzzleException
+     */
+    public function createIssue(array $issuePayload, array $relatedIssueIds = []): array
+    {
+        $res = $this->http->post('issues.json', [
+            'json' => ['issue' => $issuePayload],
+        ]);
+        $data = json_decode((string) $res->getBody(), true);
+        $issue = $data['issue'] ?? [];
+        $issueId = (int) ($issue['id'] ?? 0);
+
+        foreach ($relatedIssueIds as $relatedId) {
+            if ($relatedId <= 0 || $relatedId === $issueId) {
+                continue;
+            }
+            $this->http->post('issues/' . $issueId . '/relations.json', [
+                'json' => [
+                    'relation' => [
+                        'issue_to_id' => $relatedId,
+                        'relation_type' => 'relates',
+                    ],
+                ],
+            ]);
+        }
+
+        if ($issueId > 0) {
+            return $this->getIssue($issueId);
+        }
+
+        return $issue;
+    }
+
+    /**
      * @param array<string, mixed> $issue
      * @return array<string, mixed>
      */

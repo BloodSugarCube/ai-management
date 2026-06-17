@@ -55,8 +55,14 @@
             font-weight: 700;
             font-size: 13px;
         }
-        table.employees-table ul.compact {
-            font-size: 13px;
+        table.employees-table th {
+            vertical-align: middle;
+        }
+        table.employees-table td {
+            vertical-align: middle;
+        }
+        table.employees-table .col-text textarea {
+            vertical-align: top;
         }
     </style>
 @endpush
@@ -64,8 +70,7 @@
 @section('content')
     <h1 style="margin-top:0;">Сотрудники</h1>
     <p style="color: var(--muted); max-width: 900px;">
-        Данные синхронизируются командой <span class="pill">php artisan redmine:sync-employees</span>.
-        Поля грейдов, компетенций и опыта сохраняются локально и участвуют в подборе исполнителя через GenAPI.
+        Поля должностей, квалификаций компетенций и опыта сохраняются в рамках модуля и участвуют в подборе исполнителя через нейросеть.
         Отмеченные «Игнорировать» не участвуют в рекомендациях и не могут быть назначены.
     </p>
 
@@ -95,7 +100,7 @@
                         @if($sortDirection === 'asc') ↑ @else ↓ @endif
                     </th>
                     <th class="col-tasks">Текущие задачи (in progress)</th>
-                    <th class="col-text">Грейды</th>
+                    <th class="col-text">Должность, квалификации</th>
                     <th class="col-text">Компетенции</th>
                     <th class="col-text">Опыт и достижения</th>
                     <th class="col-hours">Заплан. ч.</th>
