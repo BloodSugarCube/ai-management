@@ -120,7 +120,29 @@
         .modal.show { display: block; }
         .modal header { position: static; border-bottom: 1px solid var(--border); }
         .modal .modal-head { display:flex; align-items:center; justify-content: space-between; gap: 12px; }
-        .x { border: none; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer; }
+        .modal-title {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 800; font-size: 20px; line-height: 1.2;
+        }
+        .modal-title svg { width: 24px; height: 24px; flex-shrink: 0; color: var(--accent); }
+        .x {
+            border: none; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer;
+            width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 8px; line-height: 1; padding: 0;
+        }
+        .x:hover { background: rgba(148, 163, 184, 0.12); color: var(--text); }
+        .x-lg { width: 44px; height: 44px; font-size: 28px; }
+        .role-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 999px;
+            font-size: 12px; font-weight: 600; white-space: nowrap;
+        }
+        .role-badge--admin {
+            background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;
+        }
+        .role-badge--manager {
+            background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.35); color: #cbd5e1;
+        }
+        .card-overflow-visible { overflow: visible; }
         .toggle { display:flex; align-items:center; gap: 10px; user-select:none; }
         .switch {
             width: 46px; height: 26px; border-radius: 999px; border: 1px solid var(--border);
@@ -142,9 +164,9 @@
             border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 18px; line-height: 1;
         }
         .row-actions-menu {
-            display: none; position: absolute; right: 0; top: calc(100% + 4px);
+            display: none; position: fixed;
             min-width: 160px; background: #0b1220; border: 1px solid var(--border);
-            border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 20; overflow: hidden;
+            border-radius: 8px; box-shadow: 0 12px 40px rgba(0,0,0,0.55); z-index: 200; overflow: hidden;
         }
         .row-actions.open .row-actions-menu { display: block; }
         .row-actions-menu a, .row-actions-menu button {

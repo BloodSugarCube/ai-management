@@ -12,13 +12,13 @@
         <div class="error">{{ $errors->first('delete') }}</div>
     @endif
 
-    <div class="card" style="overflow:auto;">
+    <div class="card card-overflow-visible">
         <table>
             <thead>
             <tr>
                 <th style="width: 64px;">ID</th>
                 <th>ФИО</th>
-                <th>Роль</th>
+                <th style="width: 160px;">Роль</th>
                 <th>Логин/Email</th>
                 <th>Дата добавления</th>
                 <th style="width: 56px;"></th>
@@ -29,7 +29,9 @@
                 <tr>
                     <td>{{ $user->id }}</td>
                     <td>{{ $user->name }}</td>
-                    <td>{{ $user->roleLabel() }}</td>
+                    <td>
+                        <span class="role-badge role-badge--{{ $user->role }}">{{ $user->roleLabel() }}</span>
+                    </td>
                     <td>{{ $user->email }}</td>
                     <td>{{ $user->created_at?->format('d.m.Y H:i') }}</td>
                     <td>
@@ -52,7 +54,7 @@
         <header>
             <div class="wrap modal-head">
                 <div style="font-weight:800;">Удалить пользователя?</div>
-                <button type="button" class="x" id="deleteCloseX" aria-label="Закрыть">×</button>
+                <button type="button" class="x x-lg" id="deleteCloseX" aria-label="Закрыть">×</button>
             </div>
         </header>
         <div class="wrap" style="padding-bottom: 16px;">
@@ -70,19 +72,46 @@
 @push('scripts')
     <script>
         (function () {
+            function positionMenu(wrap) {
+                const btn = wrap.querySelector('.row-actions-btn');
+                const menu = wrap.querySelector('.row-actions-menu');
+                if (!btn || !menu) return;
+
+                menu.style.display = 'block';
+                menu.style.visibility = 'hidden';
+                const rect = btn.getBoundingClientRect();
+                const menuWidth = menu.offsetWidth || 160;
+                let left = rect.right - menuWidth;
+                left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
+                menu.style.top = (rect.bottom + 4) + 'px';
+                menu.style.left = left + 'px';
+                menu.style.visibility = '';
+            }
+
+            function closeAll() {
+                document.querySelectorAll('[data-actions].open').forEach((el) => {
+                    el.classList.remove('open');
+                    const menu = el.querySelector('.row-actions-menu');
+                    if (menu) menu.style.display = '';
+                });
+            }
+
             document.querySelectorAll('[data-actions]').forEach((wrap) => {
                 const btn = wrap.querySelector('.row-actions-btn');
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    document.querySelectorAll('[data-actions].open').forEach((el) => {
-                        if (el !== wrap) el.classList.remove('open');
-                    });
-                    wrap.classList.toggle('open');
+                    const wasOpen = wrap.classList.contains('open');
+                    closeAll();
+                    if (!wasOpen) {
+                        wrap.classList.add('open');
+                        positionMenu(wrap);
+                    }
                 });
             });
-            document.addEventListener('click', () => {
-                document.querySelectorAll('[data-actions].open').forEach((el) => el.classList.remove('open'));
-            });
+
+            window.addEventListener('resize', closeAll);
+            window.addEventListener('scroll', closeAll, true);
+            document.addEventListener('click', closeAll);
 
             const backdrop = document.getElementById('deleteBackdrop');
             const modal = document.getElementById('deleteModal');
@@ -98,14 +127,15 @@
             backdrop.addEventListener('click', close);
 
             document.querySelectorAll('[data-delete-user]').forEach((btn) => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     const id = btn.getAttribute('data-user-id');
                     const name = btn.getAttribute('data-user-name');
                     form.action = @json(url('/users')) + '/' + id;
                     text.textContent = 'Пользователь «' + name + '» будет удалён без возможности восстановления.';
+                    closeAll();
                     backdrop.classList.add('show');
                     modal.classList.add('show');
-                    document.querySelectorAll('[data-actions].open').forEach((el) => el.classList.remove('open'));
                 });
             });
         })();

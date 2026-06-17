@@ -4,6 +4,10 @@
 
 @push('head')
     <style>
+        .employees-page { max-width: none; width: 100%; }
+        main .wrap:has(.employees-page) {
+            max-width: min(1680px, calc(100vw - 40px));
+        }
         .employees-toolbar {
             display: flex;
             align-items: center;
@@ -27,6 +31,10 @@
             width: 88px;
             text-align: center;
             vertical-align: middle;
+            padding-left: 28px;
+        }
+        table.employees-table th.col-ignore {
+            padding-left: 28px;
         }
         table.employees-table .col-ignore label {
             display: inline-flex;
@@ -68,9 +76,10 @@
 @endpush
 
 @section('content')
+    <div class="employees-page">
     <h1 style="margin-top:0;">Сотрудники</h1>
     <p style="color: var(--muted); max-width: 900px;">
-        Поля должностей, квалификаций компетенций и опыта сохраняются в рамках модуля и участвуют в подборе исполнителя через нейросеть.
+        Поля должностей, квалификаций, компетенций и опыта сохраняются в рамках модуля и участвуют в подборе исполнителя через нейросеть.
         Отмеченные «Игнорировать» не участвуют в рекомендациях и не могут быть назначены.
     </p>
 
@@ -154,4 +163,5 @@
             </table>
         </div>
     </form>
+    </div>
 @endsection
