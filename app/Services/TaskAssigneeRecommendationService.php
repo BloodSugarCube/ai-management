@@ -259,6 +259,7 @@ PROMPT;
             ];
         }
 
+        usort($clean, fn (array $a, array $b) => $b['match_percent'] <=> $a['match_percent']);
         $clean = array_slice($clean, 0, 5);
         if ($clean !== []) {
             return $clean;

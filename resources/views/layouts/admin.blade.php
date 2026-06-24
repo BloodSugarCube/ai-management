@@ -199,7 +199,7 @@
 
 <header>
     <div class="wrap nav">
-        <a href="{{ auth()->check() ? route('employees.index') : route('login') }}" class="brand">
+        <a href="{{ auth()->check() ? route('tasks.index') : route('login') }}" class="brand">
             <svg class="brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 5a3 3 0 1 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
                 <path d="M12 5a3 3 0 1 1 5.997.142 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>

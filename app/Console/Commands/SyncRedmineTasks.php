@@ -18,6 +18,7 @@ class SyncRedmineTasks extends Command
         $this->info('Загрузка задач, status_id=' . ($filter === '' ? '*' : $filter));
 
         $count = 0;
+        $syncedIds = [];
         try {
             foreach ($redmine->iterateIssues($filter) as $issue) {
                 $normalized = RedmineIssue::enrichNormalizedAssignee(
@@ -26,6 +27,7 @@ class SyncRedmineTasks extends Command
                 if ($normalized['redmine_issue_id'] === 0) {
                     continue;
                 }
+                $syncedIds[] = $normalized['redmine_issue_id'];
                 RedmineIssue::query()->updateOrCreate(
                     ['redmine_issue_id' => $normalized['redmine_issue_id']],
                     $normalized
@@ -38,7 +40,14 @@ class SyncRedmineTasks extends Command
             return self::FAILURE;
         }
 
+        $deleted = $syncedIds === []
+            ? RedmineIssue::query()->delete()
+            : RedmineIssue::query()->whereNotIn('redmine_issue_id', $syncedIds)->delete();
+
         $this->info('Синхронизировано записей: ' . $count);
+        if ($deleted > 0) {
+            $this->info('Удалено устаревших записей: ' . $deleted);
+        }
 
         return self::SUCCESS;
     }
